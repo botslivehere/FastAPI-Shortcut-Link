@@ -6,6 +6,9 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./shortener.db")
 
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+    
 engine = create_async_engine(DATABASE_URL)
 Session = async_sessionmaker(engine, expire_on_commit=False)
 
