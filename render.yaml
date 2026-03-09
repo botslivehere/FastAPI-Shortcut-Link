@@ -1,0 +1,30 @@
+databases:
+  - name: shortlink-db
+    databaseName: short_links
+    user: shortlink
+    plan: free
+
+services:
+  - type: web
+    name: shortlink-api
+    runtime: docker
+    dockerfilePath: ./api/py.Dockerfile
+    dockerContext: ./api
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: shortlink-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: shortlink-redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+
+  - type: redis
+    name: shortlink-redis
+    plan: free
+    maxmemoryPolicy: noeviction
