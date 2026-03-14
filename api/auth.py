@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, Header, HTTPException
 import bcrypt
@@ -21,7 +21,7 @@ def check_pw(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
 def make_token(username: str) -> str:
-    return jwt.encode({"sub": username, "exp": datetime.utcnow() + timedelta(days=1)}, SECRET, ALGO)
+    return jwt.encode({"sub": username, "exp": datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=1)}, SECRET, ALGO)
 
 async def get_user(token: str, db: AsyncSession) -> User:
     try:

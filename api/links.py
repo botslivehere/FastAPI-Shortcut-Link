@@ -2,7 +2,7 @@ import os
 import secrets
 import string
 import redis.asyncio as aioredis
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import RedirectResponse
@@ -33,7 +33,7 @@ async def inc_link_counter(code: str) -> None:
         link = (await s.execute(select(Link).where(Link.short_code == code))).scalars().first()
         if link:
             link.clicks_count += 1
-            link.last_used_at = datetime.utcnow()
+            link.last_used_at = datetime.now(timezone.utc).replace(tzinfo=None)
             await s.commit()
 
 @router.post("/links/shorten", response_model=LinkOut)
@@ -62,7 +62,7 @@ async def search(original_url: str, db: AsyncSession = Depends(get_db)):
 @router.get("/links/expired")
 async def expired(db: AsyncSession = Depends(get_db)):
     rows = (await db.execute(
-        select(Link).where(Link.expires_at.isnot(None), Link.expires_at < datetime.utcnow())
+        select(Link).where(Link.expires_at.isnot(None), Link.expires_at < datetime.now(timezone.utc).replace(tzinfo=None))
     )).scalars().all()
     return [{"short_code": l.short_code, "original_url": l.original_url,
              "expires_at": l.expires_at, "clicks_count": l.clicks_count} for l in rows]
@@ -80,7 +80,7 @@ async def redirect(short_code: str, bg: BackgroundTasks, db: AsyncSession = Depe
         raise HTTPException(410, "Expired")
     if not cached:
         l = await get_link(short_code, db)
-        if l.expires_at and l.expires_at < datetime.utcnow():
+        if l.expires_at and l.expires_at < datetime.now(timezone.utc).replace(tzinfo=None):
             await redis_client.setex(f"link:{short_code}", TTL, "EXPIRED")
             raise HTTPException(410, "Expired")
         cached = l.original_url
@@ -115,7 +115,7 @@ async def by_project(project: str, db: AsyncSession = Depends(get_db)):
 
 @router.delete("/secret/unused/cleanup")
 async def cleanup(days: int = 30, db: AsyncSession = Depends(get_db)):
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
     res = await db.execute(delete(Link).where(
         (Link.last_used_at < cutoff) | (Link.last_used_at.is_(None) & (Link.created_at < cutoff))
     ))

@@ -3,6 +3,7 @@
 ## Содержание
 
 - [Запуск](#запуск)
+- [Тестирование](#тестирование)
 - [База данных](#база-данных)
 - [auth.py](#authpy)
 - [links.py](#linkspy)
@@ -21,8 +22,65 @@ REDIS_URL=redis://redis:6379
 docker compose up --build
 ```
 
-API: http://localhost:8000  
+API: http://localhost:8000
 Swagger: http://localhost:8000/docs
+
+## Тестирование
+
+### Установка зависимостей
+
+```bash
+pip install -r api/requirements.txt
+pip install -r tests/requirements.txt
+```
+
+### Запуск тестов
+
+Из корня репозитория:
+
+```bash
+python -m pytest tests/
+```
+
+### Покрытие кода
+
+[Готовый отчёт](./htmlcov/index.html)
+
+```bash
+# тесты с замером покрытия
+python -m coverage run --rcfile tests/.coveragerc -m pytest tests/
+
+# краткий отчёт в терминале
+python -m coverage report --rcfile tests/.coveragerc -m
+
+# HTML-отчёт
+python -m coverage html --rcfile tests/.coveragerc
+```
+
+### Нагрузочные тесты
+
+Сервис должен быть запущен (`docker compose up`):
+
+```bash
+# интерактивный UI (http://localhost:8089)
+python -m locust -f tests/locustfile.py --host http://localhost:8000
+
+# консоль 50 user, 10 rate/sec, 60 sec
+python -m locust -f tests/locustfile.py --host http://localhost:8000 --headless -u 50 -r 10 --run-time 60s
+```
+
+### Структура тестов
+
+```
+tests/
+├── conftest.py       # тестовая БД + мок Redis
+├── test_unit.py      # юнит-тесты
+├── test_auth.py      # /register, /login
+├── test_links.py     # Link CRUD ручки
+├── locustfile.py     # нагрузочные сценарии
+├── requirements.txt  # зависимости
+└── .coveragerc       # конфигурация coverage
+```
 
 ## База данных
 

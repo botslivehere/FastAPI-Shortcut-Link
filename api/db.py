@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
@@ -28,7 +28,7 @@ class Link(Base):
     short_code = Column(String, unique=True, index=True, nullable=False)
     original_url = Column(String, nullable=False)
     custom_alias = Column(String, unique=True, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     expires_at = Column(DateTime, nullable=True)
     clicks_count = Column(Integer, default=0)
     last_used_at = Column(DateTime, nullable=True)
